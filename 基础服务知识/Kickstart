@@ -1,0 +1,130 @@
+Kickstart 自动部署安装系统
+selinux关闭，防火墙关闭
+
+第一步安装dhcp服务：
+yum install –y dhcp
+vim /etc/dhcp/dhcpd.conf加入：
+
+subnet 192.168.1.0 netmask 255.255.255.0 {                  
+#指定子网络及子网掩码，这里是申明在1网段以及子网掩码
+
+  range 192.168.1.100 192.168.1.103;                          
+#设置分配的ip地址池范围100-103
+
+  option domain-name-servers ns1.internal.example.org;    
+ #指定指定dns服务器，多台用逗号隔开
+
+  option domain-name "internal.example.org";                    
+  #域名:参见/etc/resolv.conf
+
+  option routers 192.168.1.1;                                 
+  #指定默认网关，这里是网关地址
+
+  option broadcast-address 192.168.1.255;           
+  #广播地址
+
+  default-lease-time 600;                                     
+  #默认租约
+
+  max-lease-time 7200;                                        
+  #最大租约时间
+
+#kickstart配置--------------------------------------------
+  next-server 192.168.8.132           
+# 告知客户端TFTP服务器的ip
+filename "/pxelinux.0";              
+# 告知客户端从TFTP根目录下载pxelinux.0文件
+
+
+}
+
+第二步安装TFTP服务：
+yum install tftp-server -y
+vim /etc/xinetd.d/tftp
+把disable设置为no 开启TFTP：
+/etc/init.d/xinetd start 启动tftp服务
+第三步获取pxelinux.0系统：
+1）yum install -y syslinux
+复制pxelinux.0文件到tftp根目录
+cp /usr/share/syslinux/pxelinux.0  /var/lib/tftpboot/
+
+2）将镜像挂载上
+特别说明：由于这是测试环境可以使用挂载，在生产环境中必须把镜像中的文件复制到硬盘上，光驱速度太慢。
+mkdir -p /var/www/html/redhat
+mount /dev/sr0 /var/www/html/redhat
+3）将镜像中的相关文件复制到tftp根目录
+cp -a /var/www/html/redhat/isolinux/* /var/lib/tftpboot/
+mkdir -p /var/lib/tftpboot/pxelinux.cfg
+cp /var/www/html/redhat/isolinux/isolinux.cfg 到/var/lib/tftpboot/pxelinux.cfg/default
+4）default配置文件实现通过网络半自动化安装操作系统
+CentOS7.X 网络安装的关键点,修改default文件
+在/var/lib/tftpboot/pxelinux.cfg/default文件中
+修改：
+label linux
+  menu label ^Install Red Hat Enterprise Linux 7.2
+  kernel vmlinuz
+  append initrd=initrd.img inst.stage2=hd:LABEL=RHEL-7.2\x20Server.x86_64 quiet
+这个位置添加：append initrd=initrd.img method=http://192.168.8.132/redhat/
+
+5）redhat实现全自动化安装的default文件
+/var/lib/tftpboot/pxelinux.cfg/default 添加：
+default ks
+prompt 0
+
+label ks
+  kernel vmlinuz
+  append initrd=initrd.img ks=http://192.168.8.132/ks-config/redhat-ks.cfg net.ifnames=0 biosdevname=0 ksdevice=eth0
+
+ks文件的作用：
+　　　通常，我们在安装操作系统的过程中，需要大量的和服务器交互操作，为了减少这个交互过程，kickstart就诞生了。只需事先定义好一个Kickstart自动应答配置文件ks.cfg（通常存放在安装服务器上），并让安装程序知道该配置文件的位置，在安装过程中安装程序就可以自己从该文件中读取安装配置，从而实现无人值守的自动化安装。
+ks文件生成的三种方式：
+方法1 
+　　每安装好一台机器，安装程序都会创建一个kickstart配置文件，记录你的真实安装配置。如果你希望实现和某系统类似的安装，可以基于该系统的kickstart配置文件(位于/root/anaconda-ks.cfg）来模仿生成你自己的kickstart配置文件。　
+方法2 
+　　有一个图形化的kickstart配置工具。在任何一个安装好的Linux系统上运行该工具，就可以很容易地创建你自己的kickstart配置文件。kickstart配置工具命令为redhat-config-kickstart（RHEL3）或system-config-kickstart（RHEL4，RHEL5）.网上有很多用CentOS桌面版生成ks文件的文章 
+方法3
+阅读kickstart配置文件的手册。用任何一个文本编辑器都可以创建你自己的kickstart配置文件。
+
+文件/var/www/html/ks-config/redhat-ks.cfg如下:
+# Kickstart Configurator for redhat #命令段
+install   #告知安装程序，这是安装。
+url --url="http://192.168.8.132/redhat/"  #通过http下载安装镜像
+text     #以文本格式安装
+lang en_US.UTF-8   #设置字符集格式
+keyboard us  #设置键盘类型
+zerombr   #清除mbr引导
+bootloader --location=mbr --driveorder=sda --append="crashkernel=auto rhgb quiet"    #指定引导记录被写入的位置
+#network  --bootproto=static --device=eth0 --gateway=10.0.0.254 --ip=10.0.0.202 --nameserver=223.5.5.5 --netmask=255.255.255.0 --activate  #配置eth0网卡
+#network  --bootproto=static --device=eth1 --ip=192.168.8.155 --netmask=255.255.255.0 --activate   #配置eth1网卡
+network  --hostname=Cobbler  #设置主机名
+network --bootproto=dhcp --device=eth0 --onboot=yes --noipv6 --hostname=redhat 
+#network --bootproto=dhcp #使用dhcp方式设置网络
+timezone --utc Asia/Shanghai  #时间
+authconfig --enableshadow --passalgo=sha512  #设置密码格式
+#rootpw	--iscrypted $6$X20eRtuZhkHznTb4$dK0BJByOSAWSDD8jccLVFz0CscijS9ldMWwpoCw/ZEjYw2BTQYGWlgKsn945fFTjRC658UXjuocwJbAjVI5D6     #密文密码
+rootpw --plaintext redhat #设置明文密码
+clearpart --all --initlabel  #清空分区
+part /boot --fstype xfs --size 1024   #/boot分区
+part swap --size 1024                    #swap分区
+part / --fstype xfs --size 1 --grow   #/分区
+firstboot --disable       #负责协助配置redhat一些重要的信息
+selinux --disabled        #关闭selinux
+firewall --disabled       #关闭防火墙
+logging --level=info      #设置日志级别
+reboot                       #安装完成重启
+
+%packages #包组段   @表示包组
+@^minimal
+@compat-libraries
+@debugging
+@development
+tree
+wget
+vim
+%end
+%post #脚本段，可以放脚本或命令
+systemctl disable postfix.service   #关闭邮件服务开机自启动
+%end
+
+参考文档https://www.cnblogs.com/clsn/p/7833333.html#auto_id_10
+

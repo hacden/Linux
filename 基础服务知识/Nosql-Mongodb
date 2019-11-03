@@ -1,0 +1,47 @@
+Mongodb（nosql数据库）
+分布式文件存储数据库系统
+ 
+（1）将数据存储为一个文档，文档类似json
+
+MongoDB安装：
+rpm包http://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/
+yum install -y mongodb-org，/etc/mongod.conf配置文件。之后执行
+echo never >/sys/kernel/mm/transparent_hugepage/enabled
+echo never >/sys/kernel/mm/transparent_hugepage/defrag
+然后在/etc/security/limits.conf加入
+mongod soft nofile 64000
+mongod hard nofile 64000
+mongod soft nproc 32000
+mongod hard nproc 32000
+启动： mongod -f /etc/mongod.conf
+
+
+连接mongoDB：
+执行mongo进入命令行，或mongo –host 127.0.0.1 –port 27017
+use test 进入test库
+db.createUser({user:”admin”,pwd:”rootroot”,roles:[{role:”dbOwner”,db:”userdb”}]}) 创建用户
+use admin 进入admin库后，db.system.users.find() 查看所有用户
+db.dropUser(‘admin’) 删除用户admin
+db.version() 查看版本
+show tables() 查看表
+show dbs 查看所有库
+db.dropDatabase() 切换到库下，删除库
+db.stats() 查看库信息
+
+
+MongoDB备份恢复：
+mongodump -h -ip -d dbname -o dir 备份指定库到dir路径下
+mongorestore -d mydb /tmp/mongidbbackup 恢复数据
+mongorestore –dorp -d mydb /tmp/mongdbbackup 强制恢复
+
+
+MongoDB连接php：
+安装php的mongo扩展模块，编译安装，最后编辑php.ini添加extension = mongo.so
+
+
+
+
+
+
+
+

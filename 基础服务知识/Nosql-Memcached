@@ -1,0 +1,48 @@
+Nosql（not only sql）非关系型数据库--Memcached（键值数据库key-value）
+
+简要：Nosql数据之间无关系，可随意扩展。存储简单，可存在内存中读取非常快，不需要建表、字段等数据可存储自定义格式。
+Memcached基于c/s架构即（客户端/服务端），协议简单，基于libevent事件处理。
+ 
+Slab allocation的原理将内存分配成不同尺寸的块（Chunk），集合起的Chunk组为Slab，一个page为1MB，Chunk不能超过1MB。Chunk大小的递增可能为1.25倍但不得超过1MB。
+
+Memcached数据过期方式-----------------Lazy Expiration和LRU两种
+Lazy Expiration：memcached内部不会监视记录是否过期，而在get时查看记录的时间戳来判定记录是否过期。
+LRU：memcached会优先使用已经超时的记录空间，同时当内存空间不足时会踢除最近未被使用的记录，将其空间分配给新记录。
+
+Memcached安装：
+yum install -y epel-release		---扩展源
+yum install -y libevent memcached libmemcached
+配置文件在/etc/sysconfig/memcached
+
+查看memcached运行状态：
+memcached-tool 127.0.0.1:11211 stats或memstat --servers=127.0.0.1:11211
+get_hit属性为命中的数量，cmd_get属性为get的数量两叁数可计算出命中率
+
+
+
+Memcached命令行使用：
+telnet  127.0.0.1  11211
+set	 key1  0	  300  2  ---表示添加键key1，0表示标志（16位的无符号整数），过期时间300秒，大小2字节，回车然后输入2字节的数据。
+get  key1  ---查看key1的值
+memcached-tool	127.0.0.1:11211	display 	---查看Chunk的相关叁数大小
+
+
+
+php连接memcached：
+安装memcached扩展，下载memcached-x-x-x.tgz
+cd /usr/local/memcached-x-x-x目录下
+使用/usr/local/php/bin/phpize命令生成编译可执行文件
+./configure	--with-php-config=/usr/local/php/bin/php-config ---进行编译安装
+ 在php.ini文件中设置extension_dir=” memcache.so文件路径”叁数，并加上extension=memcache.so
+
+Memcached实现session共享（多种环境可用，如LNMP）：
+在php.ini配置或添加
+session.save_handler=”memcache”和
+session.save_path=”tcp://127.0.0.1:11211”
+或者在http.conf中对应的虚拟主机中添加
+php_value session.save_handler “memcache”和
+php_value session.save_path“tcp://127.0.0.1:11211”
+或者在php-fpm.conf对应的pool中添加
+php_value[session.save_handler]=”memcache”和
+php_value[session.save_path]=”tcp://127.0.0.1:11211
+

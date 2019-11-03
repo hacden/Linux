@@ -1,0 +1,44 @@
+Web容器：Tomcat      Jboss    weblogic     resin
+下载源码包后移动和配置环境变量即可
+
+Tomcat是一个轻量级应用服务器，在中小型系统和并发访问用户不是很多的场合下被普遍使用，是开发和调试JSP程序的首选。
+下载jdk环境：
+https://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+linux使用命令:
+wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" https://download.oracle.com/otn-pub/java/jdk/8u201-b09/42970487e3af4f5aa5bca3f542482c60/jdk-8u201-linux-i586.tar.gz
+
+解压后mv /usr/local/下
+vim /etc/profile 加入
+JAVA_HOME=/usr/local/jdk1.8.0_191/
+JAVA_BIN=/usr/local/jdk1.8.0_191/bin
+JRE_HOME=/usr/local/jdk1.8.0_191/jre
+PATH=$PATH:/usr/local/jdk1.8.0_191/bin:/usr/local/jdk1.8.0_191/jre/bin
+CLASSPATH=/usr/local/jdk1.8.0_191/jre/lib:/usr/local/jdk1.8.0_191/lib:/usr/local/jdk1.8.0_191/jre/lib/charsets.jar
+export JAVA_HOME JAVA_BIN JRE_HOME PATH CLASSPATH
+
+下载tomcat
+http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.17/bin/apache-tomcat-9.0.17.tar.gz
+
+解压后mv /usr/local/src/apache-tomcat-9.0.13 /usr/local/tomcat
+cp -p /usr/local/tomcat/bin/catalina.sh /etc/init.d/tomcat  拷贝启动脚本
+
+vim /etc/init.d/tomcat 加入
+. /etc/init.d/functions
+JAVA_HOME=/usr/local/jdk1.8.0_191/
+CATALINA_HOME=/usr/local/tomcat
+然后添加启动项到chkconfig下
+出现service nginx does not support chkconfig时需在启动脚本中加入：
+#chkconfig: 112 63 37 
+# description: tomcat server init script 
+
+主配置文件vim /usr/local/tomcat/conf/server.xml 
+
+配置虚拟主机
+<Host name="www.123.cn" appBase="/data/tomcatweb" 
+unpackWARs="false" autoDeploy="true" xmlValidation="false" 
+xmlNamespaceAware="false"> 
+<Context path="" docBase="./" debug="0" reloadable="true" crossContext="true"/> 
+</Host> 
+在windows下的C:\Windows\System32\drivers\etc\hosts中加入ip及域名
+
+

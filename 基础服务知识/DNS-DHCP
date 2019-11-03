@@ -1,0 +1,139 @@
+Dns服务
+yum install -y bind
+vim /etc/named.conf 输入：
+options {
+    directory "/var/named";
+};
+
+zone "." IN  {
+    type hint;
+    file "named.ca";
+};
+
+zone "localhost" IN {
+    type master;
+    file "localhost.zone";
+};
+
+zone "0.0.127.in-addr.arpa" IN {
+    type master;
+    file "named.local";
+};
+
+
+设置文件属主：
+chown named /etc/named.conf
+
+vim /var/named/localhost.zone加入以下：
+
+@                   IN      SOA     localhost.  admin.localhost.     (
+                                                                        2013081601
+                                                                        1H
+                                                                        10M
+                                                                        7D
+                                                                        1D
+                                                                           )
+@                   IN          NS          localhost.
+localhost.          IN          A           127.0.0.1
+
+
+
+
+
+
+vim  /var/named/named.localt加入以下：
+
+$TTL 86400
+@                    IN      SOA     localhost.  admin.localhost.      (
+                                                                        2013081601
+                                                                        1H
+                                                                        10M
+                                                                        7D
+                                                                        1D
+                                                                        )
+@                    IN          NS          localhost.
+1                    IN          PTR         localhost
+
+要想启动named服务要生成rndc.key, 如果没有这个key ，namd 是启动不了的
+命令rndc-confgen -r /dev/urandom -a
+
+yum install bind-utils后使用dig命令测试正向解析dig @127.0.0.1 localhost.
+接着测试反解析：dig @127.0.0.1 -x 127.0.0.1
+
+如果在客户端的/etc/resolv.conf中配置dns服务器地址，不通时可能是防火墙没有关闭
+
+DNS转发：
+vim  /etc/named.conf //在options{} 里面增加
+ forward first;  
+ forwarders { 8.8.8.8; };
+
+配置从DNS服务器：
+拷贝主上的配置文件到从上，其中有/etc/named.conf, /var/named/localhost.zone, /var/named/named.local  
+修改named.conf：
+
+zone "abc.com" IN {
+    type slave;
+    file "slaves/abc.com.zone";
+    masters { 192.168.8.130; };
+};
+
+zone "137.168.192.in-addr.arpa" IN {
+    type slave;
+    file "slaves/192.168.zone";
+    masters { 192.168.8.130; };
+};
+
+配置DNS主从同步：
+在主dns上更改文件 /var/named/abc.com.zone // 在最后增加一行：
+123              IN      A       1.1.1.1
+另外需要修改一下第三行的那个数字串，这个是用来做标记的，只有这个数字变化了，才可以让从自动跟着变，数字只能是变大，不能减小，2013081601 -> 2013081602
+重启主namd服务: /etc/init.d/named restart
+经测试我们发现一个问题，就是从经常会同步特别慢，这是很要命的。所以需要我们做一个特殊操作，在主上的/etc/named.conf中，abc.com的zone中增加两行：
+ notify yes;
+ also-notify { 192.168.0.12; };
+
+
+
+
+DHCP服务
+yum install -y dhcp
+vim /etc/dhcp/dhcpd.conf加入：
+
+subnet 192.168.1.0 netmask 255.255.255.0 {                  
+#指定子网络及子网掩码，这里是申明在1网段以及子网掩码
+
+  range 192.168.1.100 192.168.1.103;                          
+#设置分配的ip地址池范围100-103
+
+  option domain-name-servers ns1.internal.example.org;    
+ #指定指定dns服务器，多台用逗号隔开
+
+  option domain-name "internal.example.org";                    
+  #域名:参见/etc/resolv.conf
+
+  option routers 192.168.1.1;                                 
+  #指定默认网关，这里是网关地址
+
+  option broadcast-address 192.168.1.255;           
+  #广播地址
+
+  default-lease-time 600;                                     
+  #默认租约
+
+  max-lease-time 7200;                                        
+  #最大租约时间
+
+}
+
+
+host fantasia {
+
+  hardware ethernet 08:00:07:26:c0:a5;    
+  #指定对应主机的MAC地址
+
+  fixed-address 192.168.1.103;                
+  #指定为该主机保留的IP地址
+
+}
+
+

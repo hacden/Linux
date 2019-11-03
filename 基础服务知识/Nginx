@@ -1,0 +1,191 @@
+Linux-nginx
+编译php时
+./configure --prefix=/usr/local/php-fpm   --with-config-file-path=/usr/local/php-fpm/etc  --enable-fpm   --with-fpm-user=php-fpm  --with-fpm-group=php-fpm   --with-mysql=/usr/local/mysql  --with-mysql-sock=/tmp/mysql.sock  --with-libxml-dir  --with-gd   --with-jpeg-dir   --with-png-dir   --with-freetype-dir  --with-iconv-dir   --with-zlib-dir   --with-mcrypt   --enable-soap   --enable-gd-native-ttf   --enable-ftp  --enable-mbstring  --enable-exif  --enable-zend-multibyte   --disable-ipv6   --with-pear   --with-curl 
+
+1.出现checking for cURL 7.10.5 or greater... configure: error: cURL version 7.10.5 or later is required to compile php with cURL support时
+安装  yum install -y libcurl-devel
+
+2.	有安装新的包后可以make clean 后重新编译
+有这个文件/usr/local/php-fpm/sbin/php-fpm
+
+cp php.ini-production  /usr/local/php-fpm/etc/php.ini
+
+vim /usr/local/php-fpm/etc/php-fpm.conf
+
+[global] 
+pid = /usr/local/php-fpm/var/run/php-fpm.pid
+error_log = /usr/local/php-fpm/var/log/php-fpm.log 
+[www] 
+listen = /tmp/php-fcgi.sock 
+user = php-fpm 
+group = php-fpm 
+pm = dynamic 
+pm.max_children = 50 
+pm.start_servers = 20 
+pm.min_spare_servers = 5 
+pm.max_spare_servers = 35 
+pm.max_requests = 500 
+rlimit_files = 1024 
+
+
+检查配置文件是否正确： /usr/local/php-fpm/sbin/php-fpm -t 
+拷贝启动脚本：cp /usr/local/src/php-7.2.4/sapi/fpm/init.d.php-fpm /etc/init.d/php-fpm 
+
+
+最后下载nginx：wget http://nginx.org/download/nginx-1.15.6.tar.gz
+
+./configure   --prefix=/usr/local/nginx   --with-http_realip_module   --with-http_sub_module  --with-http_gzip_static_module   --with-http_stub_status_module  --with-pcre 
+
+make ;make install
+
+
+
+vim /usr/local/nginx/conf/ngnix.conf内容如下：
+
+user nobody nobody;
+worker_processes 2;
+error_log /usr/local/nginx/logs/nginx_error.log crit;
+pid /usr/local/nginx/logs/nginx.pid;
+worker_rlimit_nofile 51200;
+
+events {
+        use epoll; worker_connections 6000;
+        }
+
+http {
+        include mime.types; default_type application/octet-stream;
+        server_names_hash_bucket_size 3526;
+        server_names_hash_max_size 4096;
+        log_format combined_realip '$remote_addr $http_x_forwarded_for [$time_local]'
+        '$host "$request_uri" $status' '"$http_referer" "$http_user_agent"';
+        sendfile on; tcp_nopush on;
+        keepalive_timeout 30;
+        client_header_timeout 3m;
+        client_body_timeout 3m;
+        send_timeout 3m;
+        connection_pool_size 256;
+        client_header_buffer_size 1k;
+         large_client_header_buffers 8 4k;
+        request_pool_size 4k;
+        output_buffers 4 32k;
+        postpone_output 1460;
+        client_max_body_size 10m;
+        client_body_buffer_size 256k;
+        client_body_temp_path /usr/local/nginx/client_body_temp;
+        proxy_temp_path /usr/local/nginx/proxy_temp;
+        fastcgi_temp_path /usr/local/nginx/fastcgi_temp;
+        fastcgi_intercept_errors on;
+        tcp_nodelay on;
+        gzip on;
+        gzip_min_length 1k;
+        gzip_buffers 4 8k;
+        gzip_comp_level 5;
+        gzip_http_version 1.1;
+        gzip_types text/plain application/x-javascript text/css text/htm application/xml;
+server {
+        listen 80; server_name localhost;
+        index index.html index.htm index.php;
+        root /usr/local/nginx/html; location ~ \.php$
+
+        {
+         include fastcgi_params; fastcgi_pass unix:/tmp/php-fcgi.sock;
+         fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME /usr/local/nginx/html$fastcgi_script_name;
+        }
+        }
+}
+
+
+
+编写启动脚本 vim /etc/init.d/nginx //加入内容：
+#! /bin/sh
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: starts the nginx web server
+ 
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DESC="nginx daemon"
+NAME=nginx
+DAEMON=/usr/local/nginx/sbin/$NAME
+CONFIGFILE=/usr/local/nginx/conf/$NAME.conf
+PIDFILE=/usr/local/nginx/logs/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+ 
+set -e
+[ -x "$DAEMON" ] || exit 0
+ 
+do_start() {
+ $DAEMON -c $CONFIGFILE || echo -n "nginx already running"
+}
+ 
+do_stop() {
+ kill -INT `cat $PIDFILE` || echo -n "nginx not running"
+}
+ 
+do_reload() {
+ kill -HUP `cat $PIDFILE` || echo -n "nginx can't reload"
+}
+ 
+case "$1" in
+ start)
+ echo -n "Starting $DESC: $NAME"
+ do_start
+ echo "."
+ ;;
+ stop)
+ echo -n "Stopping $DESC: $NAME"
+ do_stop
+ echo "."
+ ;;
+ reload|graceful)
+ echo -n "Reloading $DESC configuration..."
+ do_reload
+ echo "."
+ ;;
+ restart)
+ echo -n "Restarting $DESC: $NAME"
+ do_stop
+ do_start
+ echo "."
+ ;;
+ *)
+ echo "Usage: $SCRIPTNAME {start|stop|reload|restart}" >&2
+ exit 3
+ ;;
+esac
+ 
+exit 0
+
+
+
+
+1.主要编译php时指定--enable-fpm参数，有php-fpm服务
+ 
+2.php和php-fpm的配置文件php.ini和php-fpm.conf
+ 
+3.php-fpm启动cgi后去处理php文件完后，通过nginx去代理它。有/tmp/php-fcgi.sock和127.0.0.1:9000两种方式通信。Socket通信时要 chmod 777 /tmp/php-fcgi.sock 解决502错误
+配置完后要重启php-fpm和nginx服务
+  
+4.和apache不一样，Apache有retatelogs工具，而nginx需要自写脚本。
+ 
+5.域名重定向和用户验证，用户验证需要借助Apache生成password
+ 
+6.禁止abc目录解析php
+local ~.*abc/.*\.php?$
+	{
+		deny all;
+	}
+ 
+
+
+ 
+7.类似于Apache的虚拟主机。当网站访问慢时可以通过slowlog去查看。
+ 
+
+8.安装php 的memcache扩展模块
+/usr/local/php7/bin/phpize 
+出现Cannot find autoconf.时，需安装yum -y install m4 autoconf
+ ./configure --with-php-config=/usr/local/php7/bin/php-config 
+make && make install
+
+

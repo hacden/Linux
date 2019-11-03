@@ -1,0 +1,8 @@
+需要安装两个包(nfs-utils和rpcbind)
+yum install -y nfs-utils  会同时安装上rpcbind
+提供nfs服务的机器上 vim /etc/exports  //内容如下：
+      /home/ 192.168.137.0/24(rw,sync,all_squash,anonuid=501,anongid=501) 
+共分为三部分，第一部分就是本地要共享出去的目录，第二部分为允许访问的主机（可以是一个IP也可以是一个IP段）第三部分就是小括号里面的，为一些权限选项。它表示：共享的目录为/home，信任的主机为192.168.137.0/24这个网段，权限为读写，同步，限定所有使用者，并且限定的uid和gid都为501。
+启动 /etc/init.d/rpcbind start; /etc/init.d/nfs start   
+
+

@@ -1,0 +1,120 @@
+Nosql-redis（键值数据库key-value）支持数据持久化
+
+（1）支持string（字符串---Memcached一样类型）、hash、lists（链表）、sets（集合）、sorted sets（有序集合）
+（2）分为内存存储、磁盘存储和log文件三部分
+（3）yum install -y jemalloc-devel依赖包，编译安装如果出错就cd deps；make hiredis lua jemalloc linenoise；cd..；make；make prefix=/usr/local/redis install(指定安装的路径），安装成功后，mkdir /usr/local/redis/etc ,然后在网上下载配置文件redis.conf、启动脚本。
+（4）useradd -s /sbin/nologin redis 创建用户，mkdir /usr/local/redis/var （-755） var目录下会创建pid、rdb等文件。
+（5）/usr/local/redis/bin/redis-cli 进入redis命令行界面：
+（字符串类型）存键值对
+set key1 1111（单个创建）或mset key1 1111 key2 2222（批量创建）
+get key1（查询key）
+
+（list---链表类型）可实现最新消息排行存取等功能
+lpush list1 11111（从左边插入数据）
+rpop（右侧删值）
+lrange list1 0 -1（查看0 最左侧到 -1最右侧）
+
+（set--集合类型）QQ社交功能“好友标签”存取
+sadd set1 abc（设置集合set1有元素abc）
+smembes set1（查看集合元素）
+
+（sort-set排序集合）成绩的排序
+zadd set2 1 abc（插入abc值并排到第一位）
+zrange set2 0 -1（查第一位到最后一位---正序显示）
+zrevrage set2 0 -1（查第一位到最后一位---倒序显示）
+
+（hash--hash类型）多个键值对存到hash中
+hset hash1 name aaa（插入name为aaa的值到hashzhong）
+hget hash1或hget hash1 name（查看值）
+
+Redis的持久化：
+两种持久化方式RDB（redis database）和AOF（append only file），可完全关闭。
+RDB，将redis存储的数据生成快照（复制一份）存储到磁盘等介质上。
+AOF，将redis执行过的写指令记录下来，下次redis重新启动，只要这些指令重新执行就可恢复数据。
+优先使用AOF进行恢复数据，因为其恢复完整度高。
+
+
+
+
+
+
+Redis查看配置：
+进入redis命令行，执行config get *（查看所有配置）
+Redis通用配置：
+daemonize配置项设置运行方式
+pidfile /path/to/redis.pid 默认生成在/var/run/redis.pid
+bind 127.0.0.1 10.0.0.2 指定绑定ip，可以多个
+unixsocket /tmp/redis.sock 也可以监听socket
+unixsocketperm 755 监听时socket权限为755
+timeout 0 超时时间，server端有权主动关闭连接，0为永不关闭
+Tcp-keepalive 0 发出ack请求，0表示不会进行保活检测。
+loglevel notice 日志级别
+logfile 日志路径
+Syslog-ident redis 把日志打印到syslog中，syslog-enabled控制
+database 16 设置redis数据库数量，select n 选择库n（0-15）
+
+Redis--rdb(快照)持久化配置:
+save 900 1 每15（900秒）分钟至少有1个key改变就触发一次持久化
+save “” 关闭rdb持久化功能
+stop-writes-on-bgsave-error yes 持久化写磁盘时一旦失败，立即停止写
+rdbcompression yes 是否压缩
+rdbchecksum yes 是否进行数据校验
+dbfilename dump.rdb 定义快照文件名
+dir ./ 定义存储路径
+Redis安全配置：
+requirepass rootroot 设置redis-server密码（redis.conf配置文件中添加）
+rename-command config hacden.config 将config命令命名为hacden.config
+rename-command config “” 禁用config命令
+Redis限制相关配置
+maxclients 10000 限制最大客户端连接数
+maxmemory <bytes> 设定最大内存使用数，单位是字节
+
+Redis--AOF（指令记录到日志）持久化配置：
+appendonly yes 表示开启aof持久化
+appendfilename “appendonly.aof” 指定aof文件名字，保存在dir叁数指定目录下
+appendfsync 指定fsync（）调用模式
+no-appendfsync-on-rewrite no 使用no可避免写入量大时磁盘io阻塞
+auto-aof-rewrite-percentage 10  10表示aof文件增幅达到10%则会触发重写
+配合auto-aof-rewrite-min-size 64mb 达到64mb时重写使用
+Redis慢日志配置：
+设置叁数有两个，一个是执行时长，一个是慢日志长度，当新命令被写入日志时，最老的一条命令将被移除
+slowlog-log-slower-than 10000 慢于10000ms时记录日志
+slowlog-max-len 128 日志长度
+
+Redis的主从配置（需关闭selinux）：
+主上配置文件redis.conf不要动，然后在从上的redis.conf中加入slaveof 192.168.8.110（主的IP地址） 6379，如果主上设置了密码则需添加入masterauth passwd（你主上的redis密码）。
+Redis主从相关配置叁数：
+slave-read-only yes 让从只读（在主上配置）
+repl-ping-slave-period 10 每10秒ping主，检测存活
+repl-timeout 60 ping不通60秒时就超时
+repl-backlog-ttl 3600 主从断开后，缓冲区有效期是1小时
+min-slaves-to-write 3 主上发现超过3个从的延迟高于10秒时，默认关闭0
+配合min-slaves-max-lag 10使用
+
+PHP中应用redis：
+下载phpredis.zip，进入phpredis目录下，执行/usr/local/php/bin/phpize，./configure --with-php-config=/usr/local/php/bin/php-config，编译安装后，然后可看到redis.so文件，最后在php.ini中加入extension = redis.so，extension_dir=”redis.so文件的路径”
+Redis的session共享：
+在php.ini配置或添加
+session.save_handler=”redis”和
+session.save_path=”tcp://127.0.0.1:6379”
+或者在http.conf中对应的虚拟主机中添加
+php_value session.save_handler “redis”和
+php_value session.save_path “tcp://127.0.0.1:6379”
+或者在php-fpm.conf对应的pool中添加
+php_value[session.save_handler]=”redis”和
+Php_value[session.save_path]=”tcp://127.0.0.1:6379
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

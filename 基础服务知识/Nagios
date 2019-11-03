@@ -1,0 +1,202 @@
+Centos5要安装epel扩展源
+	rpm -ivh http://dl.fedoraproject.org/pub/epel/5/i386/epel-release-5-4.noarch.rpm
+rpm -ivh http://dl.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.r	
+
+centos6安装
+	rpm -ivh http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+rpm -ivh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+
+Centos7安装：
+	rpm -ivh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+
+需要apache服务支持---------------------------------------------
+yum install  -y httpd nagios nagios-plugins nagios-plugins-all nrpe nagios-plugins-nrpe服务端
+htpasswd -c /etc/nagios/passwd nagiosadmin修改nagiosadmin密码
+/etc/nagios/nagios.cfg 配置文件
+nagios -v /etc/nagios/nagios.cfg检查配置文件是否错误
+
+
+yum安装时出现Requires: libmysqlclient.so.16时需要：
+wget https://centos6.iuscommunity.org/ius-release.rpm
+yum --enablerepo=ius-archive install mysqlclient16
+
+
+yum install -y nagios-plugins nagios-plugins-all nrpe nagios-plugins-nrpe客户端
+客户端：vim /etc/nagios/nrpe.cfg  找到“allowed_hosts=127.0.0.1” 改为 “allowed_hosts=127.0.0.1,服务端IP地址” 后面的ip为服务端ip; 找到” dont_blame_nrpe=0” 改为  “dont_blame_nrpe=1” 
+
+
+二进制安装
+安装编译时插件：
+yum install -y gcc glibc glibc-common gd gd-devel xinetd openssl-devel
+
+useradd -s /sbin/nologin -M nagios
+wget https://sourceforge.net/projects/nagios/files/nagios-4.x/nagios-4.4.2/nagios-4.4.2.tar.gz
+./configure --prefix=/usr/local/nagios
+Make all;make install
+
+make install-init和make install-commandmode和make install-config
+
+chkconfig --add nagios
+chkconfig nagios on
+
+安装nagios插件：
+wget https://nagios-plugins.org/download/nagios-plugins-2.2.1.tar.gz
+./configure --prefix=/usr/local/nagios
+make；make install
+
+配置httpd.conf加入如下使nagios 的web 监控页面必须经过授权才能访问：
+改：User nagios和Group nagios
+
+#setting for nagios 
+ScriptAlias /nagios/cgi-bin "/usr/local/nagios/sbin" 
+<Directory "/usr/local/nagios/sbin"> 
+     AuthType Basic 
+     Options ExecCGI 
+     AllowOverride None 
+     Order allow,deny 
+     Allow from all 
+     AuthName "Nagios Access" 
+     AuthUserFile /usr/local/nagios/etc/password
+     Require valid-user 
+</Directory> 
+Alias /nagios "/usr/local/nagios/share" 
+<Directory "/usr/local/nagios/share"> 
+     AuthType Basic 
+     Options None 
+     AllowOverride None 
+     Order allow,deny 
+     Allow from all 
+     AuthName "nagios Access" 
+     AuthUserFile /usr/local/nagios/etc/password
+     Require valid-user 
+</Directory>
+
+/usr/local/apache2/bin/htpasswd -c /usr/local/nagios/etc/password nagiosadmin
+
+
+监控远程主机的模板：
+define host {
+    use                     linux-server           
+    host_name               192.168.8.131
+    alias                   192.168.8.131
+    address                 192.168.8.131
+}
+define hostgroup {
+    hostgroup_name          centos666666         ; The name of the hostgroup
+    alias                   Linux Servers           ; Long name of the group
+members                 192.168.8.131           
+}
+define service {
+
+    use                     local-service           ; Name of service template to use
+    host_name               192.168.8.131
+    service_description     PING
+    check_command           check_ping!100.0,20%!500.0,60%
+}
+define service {
+
+    use                     local-service           ; Name of service template to use
+    host_name               192.168.8.131
+    service_description     Root Partition
+    check_command           check_local_disk!20%!10%!/
+}
+define service {
+
+    use                     local-service           ; Name of service template to use
+    host_name               192.168.8.131
+    service_description     Current Users
+    check_command           check_local_users!20!50
+}
+
+define service {
+
+    use                     local-service           ; Name of service template to use
+    host_name               192.168.8.131
+    service_description     Total Processes
+    check_command           check_local_procs!250!400!RSZDT
+}
+define service {
+
+    use                     local-service           ; Name of service template to use
+    host_name               192.168.8.131
+    service_description     Current Load
+    check_command           check_local_load!5.0,4.0,3.0!10.0,6.0,4.0
+}
+define service {
+
+    use                     local-service           ; Name of service template to use
+    host_name               192.168.8.131
+    service_description     Swap Usage
+    check_command           check_local_swap!20%!10%
+}
+define service {
+
+    use                     local-service           ; Name of service template to use
+    host_name               192.168.8.131
+    service_description     SSH
+    check_command           check_ssh
+    notifications_enabled   0
+}
+define service {
+
+    use                     local-service           ; Name of service template to use
+    host_name               192.168.8.131
+    service_description     HTTP
+    check_command           check_http
+    notifications_enabled   0
+}
+     
+在nagios.cfg主配置文件中被监控主机的配置文件不能同时包含在cfg_file和cfg_dir的定义里面
+
+/usr/local/nagios/bin/nagios -v nagios.cfg命令检查配置文件是否正确
+
+
+
+服务端vim /etc/nagios/objects/commands.cfg使支持nrpe客户端监控
+增加：define command{
+        command_name    check_nrpe
+        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -c $ARG1$
+        }
+
+通过Nrpe监控的配置
+define service{
+        use     local-service
+        host_name       192.168.8.160
+        service_description     check_load
+        check_command           check_nrpe!check_load
+        check_interval 1
+}
+
+define service{
+        use     local-service
+        host_name       192.168.8.160
+        service_description     check_disk_sda1
+        check_command           check_nrpe!check_sda1
+        check_interval 1
+}
+
+define service{
+        use     local-service
+        host_name       192.168.8.160
+        service_description     check_disk_sda
+        check_command           check_nrpe!check_sda
+        check_interval 1
+然后在nrpe客户端的/etc/nagios/nrpe 的配置文件设置command的值
+command[check_sda1]=/usr/lib64/nagios/plugins/check_disk -w 20% -c 10% -p /dev/sda1
+command[check_sda]=/usr/lib64/nagios/plugins/check_disk -w 20% -c 10% -p /dev/sda
+
+
+邮件监控：
+vim /etc/nagios/objects/contacts.cfg //增加：
+define contact{
+        contact_name               123
+        use                             generic-contact
+        alias                           aming
+        email              lishiming2009@139.com
+        }
+服务端下载nrpe包解决没有check_nrpe问题：
+wget https://jaist.dl.sourceforge.net/project/nagios/nrpe-3.x/nrpe-3.2.1.tar.gz
+1.出现connect不上时需在客户端关掉防火墙
+2.出现了Connection reset by peer 的问题 // 出现这个问题之后需要回到 host端修改两个配置文件 #vim /etc/xinetd.d/nrpe // 现在的only_from = 127.0.0.1 需要添加server端的ip 即改为only_from = 127.0.0.1,192.168.0.2（这里假设server端的ip是192.168.0.2） #vim /usr/local/nagios/etc/nrpe.cfg
+
+

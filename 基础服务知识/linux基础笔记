@@ -1,0 +1,106 @@
+/boot启动相关文件,内核信息
+/lib共享动态库文件，命令调用这些库
+/mnt 默认空的，提供方便临时挂载磁盘
+/proc 存系统内存的映射，可查看内存信息，CPU信息，进程信息
+/tmp 存放临时文件，进程临时文件
+/usr/src 存内核的源代码，及用户安装的一些文件默认存放地点
+/var 存系统日志文件
+
+1.	cat /proc/cpuinfo或/proc/menifo 看cpu核数及physical cpu数 或内存
+2.	mkfs.Ext4以ext4文件系统方式格式化
+3.	/etc/profile下可以让alias别名后重启不失效，让修改环境变量PATH全局可用（可以用命令source profile生效不需要关机）
+4.	编辑磁盘配额是的/etc/fstab时，添加usrquota，grpquota时用命令mount -o remount /etc/fstab 实现不重启可以使该设置生效，
+5.	更改主机名永久生效就配置/etc/sysconfig/network 或用命令systemctl set-hostname
+6.	/etc/resolv.conf文件就是加DNS。nameserver=网关地址，即可
+7.	Centos下/boot/grub/grub.conf显示开机时的内核位置、timeout、开机时菜单等
+8.	cat /etc/fstab 看挂载的分区
+9.	/etc/rc.local和/etc/profile开机自动执行其下的代码，例如挂载光驱。
+10.	/etc/inittab设置运行级别
+11.	秘钥设置>>在家目录创建.ssh/文件夹在其中建authorized_keys文件，放入生成的秘钥，getenforce查看selinux防火墙，setenforce 0关闭selinux，或改/etc/selinux/config永久生效。Ubuntu用命令ufw disable 关闭防火墙。
+12.	Ubuntu。在家目录创建.ssh/文件夹，连接时会生成：记录连接授权信息的known_hosts文件。执行ssh-keygen命令生成秘钥id_rsa和公钥id_rsa.pub，将公钥上传到客户端即可。
+别名：创建config文件配置如下：
+Host  myserver
+HostName  ip地址
+User  username
+Post  22
+13.	安装System-config-network-tui包或安装setuptool包，可以配置网卡网络
+14.	/etc/hosts.allow或/etc/hosts.deny限制IP，用户登录
+15.	配置/etc/ssh/sshd_config能使用密钥尽量避免使用密码登陆(PermitRootLogin without-password )
+可以禁止root直接登陆服务器，只允许普通用户登陆，普通用户su到	root(PermitRootLogin no )
+
+16.	Inode索引节点，记录文件的一些属性信息。（属主等）
+17.	/etc/rsyslog.conf管理日志的服务rsyslog的配置文件，常用日志：/var/log/messages系统核心日志。/var/log/secure安全，认证，登录相关日志。/var/log/maillog 邮件相关的日志。/var/log/wtmp记录命令last的日志。/var/log/dmesg硬件产生的信息日志
+18.	chkconfig --level 2345 smb on关掉服务。还可以用ntsysv程序
+19.	stat看atime（访问后变） ，mtime（更改内容后变） （ctime更改了属性及inode）
+20.	ntpdate  time.windows.com 同步时间服务器
+21.	服务器访问状态码200，302即没问题，出现状态码为502即php可能挂了或被攻击
+22.	chmod u+s filename让普通用户可以临时拥有root权限执行该文件
+23.	chattr +a filename不能改，删，可以追加>> 
+24.	chattr +i filename不能动，固定谁都不能动
+25.	lsattr查看特殊权限
+26.	setfacl -m u:username:rwx filename设置文件的扩展权限。getfal看它的acl属性。setfacl -x u:username filename把其踢出acl机制。
+27.	假如user1执行了crontab -e命令。 即是编辑了/var/spool/cron/user1文件
+28.	dmidecode看关于系统的很多信息
+29.	uname -a 看Linux系统位数或者是file /bin/ls
+30.	cat /etc/issue查看内核和发行版
+31.	wc -l 统计行数
+32.	df -h看分区使用情况 mount看文件系统信息
+33.	blkid  /dev/sdb 显示设备UUID
+34.	du -sh统计文件占磁盘的大小，一块一般4k
+35.	fdisk /dev/sdb 对磁盘进行分区
+36.	grep -A1 ‘net addr’ file 把file文件中有net addr字符的行和其下一行过滤出来，-B1则过滤出其上一行，-C1即上下一行 ，grep -r 是递归地遍历查找文件。grep -E等同于egrep。grep -E ‘bash|root’ file 或grep ‘bash\|root’ file.过滤出有bash或root的行，grep -w 以一个词（word）过滤。
+37.	sed -i会直接对文件修改了。功能：sed ‘s/\(root\)\(.*\)\(bash\)/\3\2\1/g’调序，替换，sed ‘/root/d’删除，sed ‘/root/p’ -n过滤打印匹配的行， sed ‘s/root/eeee/g’ 把root替换为eeee
+38.	$0是打印出整行，或者所有段
+awk -F ‘root’ ‘{print $1}’ file 以root为分割符打印出第一段（$1）
+awk -F ‘：’ ‘{print $1“#”$2”#”$3}’ file 以冒号为分割的1,2,3段用#连接起来。
+awk -F ‘：’ ‘$1~/root/’ file 匹配以冒号分割的第1段为root的行。
+awk -F ‘：’ ‘$1==’root’ file 匹配以冒号分割第一段字符串等于root的行，一个等于号表示赋值
+awk -F ‘：’ ‘{print NF}’ file 打印以冒号分割出的段数
+awk -F ‘NR>20’ file 打印出大于20行的后面的行
+可以多个字符分割。
+39.	cut -d ‘：’ -f1 /etc/passwd 剪出以冒号分割的第一段 ，cut -c2 截取第二个字符（可以跟范围）只能以一个字符分割
+40.	sort -t： -k3  -n 以冒号分割的第三段进行数字大小排序 ,管道|（uniq进行去重复）uniq -c是得出多少重复次数
+41.	find ./ -type f |xargs -i cp {} /tmp/hacden一个一个文件拷贝到/tmp/hacden目录下
+42.	查看系统负载 w、uptime、top、vmstat 1（1表示1秒），vmstat 1  5 (五次后结束)
+43.	buffers 缓冲（cpu把数据放到buffers（内存）中再写到磁盘）  cached 缓存（磁盘把数据拿到cahced（内存）等cpu读）
+44.	ps aux命令中的memcached是存从mysql中读取出来的数据，相当于swap功能
+45.	find / -mtime -1 -type  f  | xargs -i cp { }  { }.bak 把查找到的文件复制名为后缀.bak，（单独xargs会合并为一行）
+46.	dd if of=./file bs=1 count=100,创建当前路径file文件块大小为1M，大小为100M的文件，dd if=/dev/zero of=./file bs=1M count=100，if后面加磁盘设备名，/dev/zero是linux下的不断生产0的设备。mkswap -f ./file 格式化文件file，swapon /file挂载在file文件中，swapoff /file 删除其（虚拟swap）
+47.	mii-tool eth0查看网络连接性
+48.	locate加文件名>>模糊搜索（安装mlocate这个包，用updatedb命令手动生成这个库）
+49.	set_uid (chmod  u+s  filename(必须是二进制文件)。文件，在执行阶段具有文件所以者的权限) 。set_gid (chmod  g+s （目录）。目录，用户在此目录下创建的文件都具有和改目录所属的组相同的组)。Sticky bit（chmod o+t （目录）。目录，防删除位）
+50.	如果mount命令不能挂载磁盘时，用dmesg命令查看相关错误信息。
+51.	tune2fs -l /dev/sdb5 |grep “Block size” 查看某个分区格式化时指定的块大小。
+52.	vi下的：e！命令将文档还原为原始状态。：！ ls /home暂时离开vi去执行ls命令
+53.	vi下的Ctrl+r反返回，按两次u返回
+54.	yum install 命令出现host不识别，则还原etc/hosts文件内容。或有缓存，则需要更新etc/yum.repos.d下面的文件,并用命令yum makecache生成新缓存。
+55.	安装sysstat。 命令：sar -n DEV 1 10 看网卡流量，sar -f /var/log/sa/sa08看某天的系统使用率，sar -q 看系统负载，sar -b 1 5看磁盘读写情况
+56.	tcpdump。 linux自带的抓包工具 命令：tcpdump -nn -vs0  显示ip和详细包。  tcpdump -nn -i eth0 tcp and port 22  抓eth0网卡和端口22的tcp包。Tcpdump -r xx.cap 查看后缀为cap的文件。
+57.	wireshark。 linux中用命令：tshark -n -t  a -R http.request -T fields -e “frame.time” -e “ip.src” -e “http.host” -e “http.request.method” -e “http.request.uri” 详细显示访问服务器的访问者信息
+58.	iptables -t filter-nvl 查看表为filter的防火墙规则(有nat表)   iptables -F 删除所有规则   iptables -z计数器请零
+59.	screen。把进程放到虚拟终端关机后还可以调出
+60.	scp。支持双向拷贝文件
+61.	rsync。支持双向拷贝文件
+62.	命令：chkconfig --level 运行级别 服务 off ， chkconfig --add 服务
+63.	mkpasswd命令生成不规则的密码，其安装包是expect
+64.	iptables -I INPUT -p tcp --dport 22 -j DROP;iptables -I INPUT -p tcp --dport 22 -s 192.168.8.0/24 -j ACCEPT 可以让192.168.0.0段访问，其他不能
+65.	iptables -nvL 查看防火墙规则，iptables -F 重置规则
+66.	mesg [y|n] 所有使用者 决定是否允许其他人传讯息到自己的终端机介面
+67.	tr命令可以在 Linux 的安全系统中完成文件向磁带备份的工作
+68.	iostat -d命令观察哪块盘 io 较多
+69.	pmap 进程号 命令看这个进程占了多少内存
+70.	ldd /bin/ls 显示当前这个ls命令运行时所需要的库文件  
+71.	iptraf 查看本机当前的流量
+72.	lspci | grep ‘Ethernet’ 查本机有哪些网卡设备
+73.	dmesg 查看本机的设备信息
+74.	Linux引导大致过程
+第一：BIOS自检，检查硬件信息
+第二：读取并执行MBR （引导管理器）
+第三：运行 grub 引导加载 kernel 
+第四：内核启动系统第一个程序/sbin/init 
+第五：init读取系统引导配置文件/etc/inittab（初始化）并根据运行级别触发runlevel事件
+第六：执行/etc/rc.d/rc.local加载终端
+75.	一个EXT3的文件分区，当用touch新建文件时报错，错误信息是磁盘已满，但是使用df -h查看分区信息时只使用了50%，请分析具体原因？
+有两种情况，一种是磁盘配额问题，另外一种就是EXT3文件系统的设计不适合很多小文件跟大文件的一种文件格式，出现很多小文件时，容易导致inode耗尽了。
+
+

@@ -1,0 +1,45 @@
+HA集群搭建：
+准备3台服务器：nfs主机、Node1主机、Node2主机
+nfs主机
+192.168.8.132  搭建nfs服务共享文件（保证数据一致性）
+
+Node1主机（两块网卡）设置成静态
+作为流动vip（eth0:0  192.168.1.110）
+192.168.1.130 
+192.168.8.130作为心跳线
+
+Node2主机（两块网卡）
+192.168.1.139 
+192.168.8.139作为心跳线
+
+1、同时关闭Node1、Node2主机的防火墙：命令setenforce 0或配置/etc/selinux/config
+2、设置hosts文件使IP可以对应主机名，以及修改hostname
+3、编辑Nsf主机的/etc/exports加入/data/nfs 192.168.8.0/24(rw,sync,no_root_squash)
+4、Nfs主机建立/data/nfs目录，Node1建立/data/mysql目录，Node2建立/data/mysql目录
+5、Nfs主机启动nfs服务：命令/etc/init.d/rpcbind start 和/etc/init.d/nfs start
+6、Node1、Node2进行挂载绑定mount -t nfs 192.168.8.132:/data/nfs /data/mysql
+7、接着Node1、Node2确保挂载的/data/mysql下无文件，并安装mysql进行初始化，初始化时一台服务器就行，安装MySQL出现问题可以看MySQL安装知识
+8、启动出现Starting MySQL.The server quit without updating PID file (/[失败]sqld.pid)时第一要检查/data/mysql目录的权限，不知何原因但切换另一台服务器时MySQL启动时会出现Starting MySQL.The server quit without updating PID file (/[失败]sqld.pid)，使用命令chown -R mysql:mysql /data/mysql
+9、启动后Node1、Node2开始yum install -y heartbeat heartbeat-* libnet 安装heartbeat
+
+以下配置在node1下：cd /usr/share/doc/heartbeat-3.0.4/ 下然后cp ha.cf authkeys haresources /etc/ha.d
+
+vim /etc/ha.d/authkeys 加入auth 3、3 md5 Hello!两行，并chmod 660 authkeys
+vim /etc/ha.d/haresources加入一行：node1 192.168.1.110/24/eth0:0 mysql
+vim/etc/ha.d/ha.cf加入或者修改：
+	logfile /var/log/ha.log记录日志
+	ucast eth1 192.168.8.139 #单播形式与对方机器通信
+	keepalive 2 #每2秒发一次广播
+	initdead 120 #这个时间是给重启系统留出来的等待时间，如果系统重启了那么网络服务不会立即正常使用
+	warntime 10 # 这个时间为警告时间，10s钟内没有收到对方节点的信号，则会发警告信息记录到日志里
+	deadtime 30 #30s内没有收到对方节点的信号则认为对方节点宕机，然后立即接管对方节点的服务
+	udpport 694 # 广播通信使用的端口
+	auto_failback on # 如果是on, 则当主节点故障恢复后，服务还会切换回来
+	node node1 #主节点主机名
+	node node2 #从节点主机名
+	ping 192.168.8.1  #仲裁节点，最好是一个比较强健的设备，比如说交换机
+	respawn hacluster /usr/lib/heartbeat/ipfail  #当heartbeat启动时也会随着一起启动的进程放到这里，ipfail是用来检测网络连通性的工具，hacluster为启动该程序的用户
+
+之后拷贝 authkeys、haresources、ha.cf到Node2的/etc/ha.d下，vim/etc/ha.d/ha.cf修改ucast eth1 192.168.8.130
+
+

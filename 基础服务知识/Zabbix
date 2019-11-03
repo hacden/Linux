@@ -1,0 +1,66 @@
+Zabbix需要LAMP支持依赖mysql
+wget -q http://repo.zabbix.com/zabbix/2.4/rhel/6/x86_64/zabbix-release-2.4-1.el6.noarch.rpm
+
+rpm -ivh zabbix-release-2.4-1.el6.noarch.rpm
+
+yum install  zabbix20 zabbix20-agent zabbix20-server  zabbix20-server-mysql zabbix20-web zabbix20-web-mysql net-snmp-devel
+
+
+源码包安装：
+https://sourceforge.net/projects/zabbix/files/ZABBIX%20Latest%20Stable/4.0.1/zabbix-4.0.1.tar.gz
+
+groupadd zabbix
+useradd -g zabbix -M -s /sbin/nologin zabbix
+
+然后建立zabbix数据库
+CREATE USER 'zabbix'@'localhost' IDENTIFIED BY 'zabbix';  创建用户
+GRANT all privileges ON zabbix.* TO 'zabbix'@'localhost';  授权
+
+cd /usr/local/src/zabbix-4.0.1/database/mysql切换到源码包的相关文件下
+导入sql数据:
+/usr/local/mysql/bin/mysql -uzabbix -pzabbix  zabbix < schema.sql
+/usr/local/mysql/bin/mysql -uzabbix -pzabbix  zabbix < images.sql
+/usr/local/mysql/bin/mysql -uzabbix -pzabbix  zabbix < data.sql
+
+
+./configure --prefix=/usr/local/zabbix --enable-server --enable-agent --with-mysql  --enable-ipv6 --with-net-snmp --with-libcurl --with-libxml2
+如果MySQL客户端类库不再默认的位置，需要在MySQL的配置文件中添加可选路径 --with-mysql=/<文件路径>/mysql_config 。
+
+出现Invalid Net-SNMP directory - unable to find net-snmp-config：
+yum install -y net-snmp-devel
+或 wget https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz进行编译
+
+出现sbin/zabbix_server: error while loading shared libraries: libevent-2.1.so.6: cannot open shared object file: No such file or directory：
+在/etc/ld.so.conf中加一行/usr/local/lib，运行ldconfig,这样再启动。
+cp /usr/local/src/zabbix-4.0.1/frontends/php/ -r /usr/local/apache2/htdocs/zabbix即可安装zabbix网页界面
+然后安装前端前提：
+在php.ini中:
+mbstring.func_overload = 0
+session.auto_start = 0
+always_populate_raw_post_data = -1
+安装支持中文：
+php-gettext
+PHP gettext 扩展不是安装Zabbix的强制性要求。如果gettext没有安装，前端也可以照常运行，但翻译将不可用。
+
+出现：PHP databases support   off    Fail时需要给php添加mysql支持模块。在/usr/local/src/php-7.2.4/ext/mysqli下新建ext子文件夹，并把mysqli文件夹的父文件夹下的mysqlnd复制到刚新建的文件夹下，再运行make
+然后修改php.ini文件，添加extension = /usr/local/php7/lib/php/extensions/no-debug-zts-20170718/和extension=mysql.so配置，
+
+
+安装监控客户端
+yum install -y zabbix22-agent.x86_64
+
+vim /etc/zabbix_agentd.conf添加
+Server=192.168.8.129  服务端ip
+ServerActive=127.0.0.1：10050
+然后启动zabbix-agent
+在服务端检查通信：./zabbix_get -s 客户端ip -p 10050 -k "system.hostname"
+
+
+设置报警邮件服务：yum install -y sendmail 
+mkdir -p /home/zabbix/bin 默认的zabbix寻找脚本路径
+vim /home/zabbix/bin/baojing.sh //内容：
+#! /bin/bash
+echo "$3" |/bin/mail -s "$2" $1
+
+设置可执行 chmod +x /home/zabbix/bin/baojing.sh 
+

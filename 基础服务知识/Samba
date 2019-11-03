@@ -1,0 +1,61 @@
+yum install -y samba samba-client 
+[global] 定义全局的配置，workgroup用来定义工作组，相信如果您安装过windows的系统，你会对这个workgroup不陌生。一般情况下，需要我们把这里的MYGROUP改成WORKGROUP（windows默认的工作组名字）。
+
+security = user #这里指定samba的安全等级。关于安全等级有四种：
+share：用户不需要账户及密码即可登录samba服务器
+user：由提供服务的samba服务器负责检查账户及密码（默认）
+server：检查账户及密码的工作由另一台windows或samba服务器负责
+domain：指定windows域控制服务器来验证用户的账户及密码。
+passdb backend = tdbsam # passdb backend（用户后台），samba有三种用户后台：smbpasswd, tdbsam和ldapsam.
+
+
+smbpasswd：该方式是使用smb工具smbpasswd给系统用户（真实用户或者虚拟用户）设置一个Samba密码，客户端就用此密码访问Samba资源。smbpasswd在/etc/samba中，有时需要手工创建该文件。
+tdbsam：使用数据库文件创建用户数据库。数据库文件叫passdb.tdb，在/etc/samba中。passdb.tdb用户数据库可使用 smbpasswd -a 创建Samba用户，要创建的Samba用户必须先是系统用户。也可使用pdbedit创建Samba账户。pdbedit参数很多，列出几个主要的：
+pdbedit -a username：新建Samba账户。
+pdbedit -x username：删除Samba账户。
+pdbedit -L：列出Samba用户列表，读取passdb.tdb数据库文件。
+pdbedit -Lv：列出Samba用户列表详细信息。
+pdbedit -c “[D]” -u username：暂停该Samba用户账号。
+pdbedit -c “[]” -u username：恢复该Samba用户账号。
+ldapsam：基于LDAP账户管理方式验证用户。首先要建立LDAP服务，设置 “passdb backend = ldapsam:ldap://LDAP Server”
+
+
+
+要求共享一个目录，任何人都可以访问，即不用输入密码即可访问，要求只读 
+[global]部分 MYGROUP 改为WORKGROUP 
+security = user  改为  security = user    map to guest = Bad Password
+
+末尾处加入：
+[share] 
+comment = share all 
+path = /tmp/samba 
+browseable = yes 
+public = yes 
+writable = no 
+
+
+共享一个目录，使用用户名和密码登录后才可以访问，要求可以读写 
+[global] 部分内容如下:  
+[global] 
+workgroup = WORKGROUP 
+server string = Samba Server Version %v 
+security = user 
+passdb backend = tdbsam 
+load printers = yes 
+cups options = raw 
+
+最后加入
+[myshare] 
+comment = share for users 
+path = /samba 
+browseable = yes 
+writable = yes 
+public = no 
+
+
+
+chmod o+t /data/samba
+
+mount挂载samba目录：mount -t cifs //192.168.0.22/myshare  /mnt -o username=user1,password=123456  
+
+

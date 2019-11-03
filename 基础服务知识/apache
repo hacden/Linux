@@ -1,0 +1,95 @@
+Apache最主要的两种模式是 prefork 模式与 worker 模式。
+prefork 的每个子进程只有一个线 程，效率高但消耗内存大，是 unix 下默认的模式；
+worker 模式每个子进程有多个线程， 内存消低，但一个线程崩溃会牵连其它同子进程的线程
+
+编译apache时要下载arp，arp-util，prce包，并进行编译指定目录和make安装
+下载: 
+wget http://cn2.php.net/distributions/php-7.2.4.tar.gz
+
+wget apache.fayea.com/apr/apr-1.6.5.tar.gz 
+./configure --prefix=/usr/local/apr
+make;make install
+
+wget apache.fayea.com/apr/apr-util-1.6.1.tar.gz
+./configure  --prefix=/usr/local/apr-util  --with-apr=/usr/local/apr/bin/apr-1-config 
+make;make install  如果出现make[1]: *** [xml/apr_xml.lo] 错误1的话：原因是缺少expat库  yum install expat-devel
+
+wget ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.39.tar.gz
+./configure --prefix=/usr/local/pcre --with-apr=/usr/local/apr
+一.	错误
+configure: error: You need a C++ compiler for C++ support.
+要安装：yum insatll -y gcc gcc-c++ 
+
+
+再不行就升级gcc
+wget http://ftp.gnu.org/gnu/gcc/gcc-6.1.0/gcc-6.1.0.tar.gz 
+
+#调用gcc源程序的configure(后面的参数选项可根据需要自行修改)，用于配置gcc：
+ /usr/local/src/gcc-4.9.0/configure --enable-checking=release --enable-languages=c,c++ --disable-multilib
+make；make install
+
+
+编译apache：./configure --prefix=/usr/local/apache2 --enable-so --enable-cgi --enable-rewrite --with-zlib --with-pcre --with-apr=/usr/local/apr --with-apr-util=/usr/local/apr-util --enable-modules=most --enable-mpms-shared=all --with-mpm=event --with-pcre=/usr/local/pcre
+如：
+make[2]: [htpasswd] 错误 1
+make[2]: 离开目录“/usr/local/src/httpd-2.4.27/support”
+make[1]: [all-recursive] 错误 1
+make[1]: 离开目录“/usr/local/src/httpd-2.4.27/support”
+make: *** [all-recursive] 错误 1
+解决办法：
+cp -r apr-1.6.5  /usr/local/src/httpd-2.4.9/srclib/apr
+cd apr-1.6.5
+./configure --prefix=/usr/local/apr
+make && make install
+
+
+cp -r apr-util-1.6.1 /usr/local/src/httpd-2.4./srclib/apr-util
+cd apr-util-1.6.1
+./configure --prefix=/usr/local/apr-util --with-apr=/usr/local/apr
+make && make install
+
+
+cd pcre-8.42
+./configure --prefix=/usr/local/pcre --with-apr=/usr/local/apr
+make ;make install 
+
+
+编译php：
+需要安装：yum install libxml2-devel
+
+./configure   --prefix=/usr/local/php7   --with-apxs2=/usr/local/apache2/bin/apxs   --with-config-file-path=/usr/local/php7/etc   --with-mysql=/usr/local/mysql   --with-libxml-dir   --with-gd   --with-jpeg-dir   --with-png-dir   --with-freetype-dir   --with-iconv-dir   --with-zlib-dir   --with-bz2   --with-openssl   --with-mcrypt   --enable-soap   --enable-gd-native-ttf   --enable-mbstring   --enable-sockets   --enable-exif   --disable-ipv6 --with-mysql-sock=/tmp/mysql.sock --enable-sockets  --with-gettext --with-mysqli
+
+出现php7.la  error时  yum install libtool-ltdl-devel     yum install libtool
+php编译报错configure: error: Cannot find OpenSSL's <evp>
+yum install -y openssl openssl-devel
+如何解决:error: Please reinstall the BZip2 distribution
+yum install bzip2 bzip2-devel
+
+configure: error: jpeglib.h not found.
+yum -y install libjpeg-devel
+
+
+Apache配置
+cp php.ini-production /usr/local/php/etc/php.ini
+
+在/usr/local/apache2/conf/httpd.conf
+增加：AddType application/x-httpd-php .php
+      DirectoryIndex index.html index.php
+/usr/local/apache2/bin/apachectl -t 检查配置文件是否正确
+/usr/loacl/apache2/bin/apachectl start 开启服务
+
+1.编译时：主要编译php时指定--with-apx2
+
+2.httpd.conf中AddType application/x-httpd-php.php没有就自己添加
+
+3.配置安全问题。虚拟主机配置文件/usr/local/apache2/conf/extra/httpd-vhosts.conf
+切割日志的程序：rotatelogs，每天生成自己定义的Log文件。
+ 
+5.域名转发。多个域名可以访问同一个网站时将跳转到一个域名下
+ 
+6.php.ini中open_basedir实现同服务器不同网站相互独立。exec函数可以执行系统命令
+ 
+7. /usr/local/php/bin/php -i命令查找php相关配置信息
+
+
+

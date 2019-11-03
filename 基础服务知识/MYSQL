@@ -1,0 +1,99 @@
+Mysql
+安装epel扩展源：
+wget http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+
+rpm -ivh epel-release-6-8.noarch.rpm
+
+1.yum 安装：wget https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
+rpm -ivh mysql80-community-release-el7-1.noarch.rpm
+
+2.二进制包安装：
+wget http://mirrors.sohu.com/mysql/MySQL-8.0/mysql-8.0.11-linux-glibc2.12-i686.tar.gz
+# cat /etc/my.cnf
+[mysqld]
+server-id                      = 1
+port                           = 3306
+mysqlx_port                    = 33060
+mysqlx_socket                  = /tmp/mysqlx.sock
+datadir                        = /data/mysql
+socket                         = /tmp/mysql.sock
+pid-file                       = /tmp/mysqld.pid
+log-error                      = error.log
+slow-query-log                 = 1
+slow-query-log-file            = slow.log
+long_query_time                = 0.2
+log-bin                        = bin.log
+relay-log                      = relay.log
+binlog_format                 =ROW
+relay_log_recovery            = 1
+character-set-client-handshake = FALSE
+character-set-server           = utf8mb4
+collation-server               = utf8mb4_unicode_ci
+init_connect                   ='SET NAMES utf8mb4'
+innodb_buffer_pool_size        = 1G
+join_buffer_size               = 128M
+sort_buffer_size               = 2M
+read_rnd_buffer_size           = 2M
+log_timestamps                 = SYSTEM
+lower_case_table_names         = 1
+default-authentication-plugin  =mysql_native_password
+#skip-tables-grant
+ 
+groupadd mysql
+useradd -s /sbin/nologin -g mysql -M mysql
+
+mkdir -p /data/mysql
+chown -R mysql:mysql /data/mysql/
+chmod -R 775 /data/mysql/
+
+• /usr/local/mysql/bin/mysqld --user=mysql --basedir=/usr/local/mysql --datadir=/data/mysql --initialize    初始化数据库
+
+出现问题/lib/ld-linux.so.2: bad ELF interpreter时：
+yum install glibc.i686
+出现libaio包等没有时可以用yum list |grep libaio查询相关包并安装
+
+出现 error while loading shared libraries: libnuma.so.1: cannot时
+用yum install -y libnuma.so.1
+
+ cat /data/mysql/error.log | grep -i password     查看密码
+
+cp /usr/local/mysql/support-files/mysql.server  /etc/init.d/mysql 
+设置启动项
+
+cp support-files/mysql.server /etc/init.d/mysqld加入启动项
+ 
+•   vim /etc/profile.d/mysql.sh  设置数据库环境变量
+•  		export PATH=$PATH:/usr/local/mysql/bin
+•  source /etc/profile.d/mysql.sh 
+
+3.	mysql密码忘记后如下或者，输入命令mysqld --skip-grant-tables回车，此时就跳过了mysql的用户验证。注意输入此命令之后命令行就无法操作了，此时可以再打开一个新的命令行进入mysql。
+ 
+4.	删除mysql命令历史文件防止被利用
+ 
+5.	连接时出现Client does not support authentication protocol requested by server解决方案：
+	use mysql;
+
+	ALTER USER ‘root’@’localhost’ IDENTIFIED WITH mysql_native_password BY ‘密码’;
+
+	FLUSH PRIVILEGES;
+6.	Mysql远程连接不上的解决方法：
+命令：	update user set host='%' where host='localhost' and user='root';
+flush privileges;   刷新
+     	 		select host,user from user;  查看主机，用户等值
+---------------------------------------------------------------------
+7.	linux下不区分大小写:    在/etc/my.cnf下增加lower_case_table_names=1
+8.	Linux忘记密码：
+找到mysql配置文件:my.cnf，
+在【mysqld】模块添加：skip-grant-tables   
+使配置生效：重启mysql服务：  service mysqld restart；
+use mysql
+//将密码置空
+update user set authentication_string = ''  where user = 'root';
+Quit
+删掉/etc/my.cnf的语句 skip-grant-tables
+//修改密码
+mysql -u root -p  //提示输入密码时直接敲回车，刚刚已经将密码置空了
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'newpassword';  
+
+
+

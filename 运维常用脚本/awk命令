@@ -1,0 +1,20 @@
+#下面这个程序打印每一行的第1第2个字段，字段之间用#分开，在每一行的第2个字段之后输出一个换行符
+gawk -F ':' 'BEGIN { OFS = "#"; ORS = "\n" }{ print $1, $2 }' /etc/passwd
+
+
+#下面这个程序将所有输入行的第1个与第3个字段输出到两个文件中：如果第3个字段大于100，则输出到bigpop，否则输出到smallpop
+gawk '{ print($1, $3) > ($3 > 100 ? "bigpop" : "smallpop") }'
+
+#把包含user后面的所有替换为空，之后打印出最后一段（$NF）
+sed 's/user.*$//' | gawk '{print $NF}'
+
+#查看僵尸进程
+ps -al | gawk '{print $2,$4}' | grep Z
+
+#取第3行数据
+awk 'NR==3' 1.txt 
+
+#查看磁盘实用百分比
+df -h /dev/sda1 | sed -n '/% \//p' | gawk '{ print $5 }'
+
+

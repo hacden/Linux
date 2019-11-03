@@ -1,0 +1,119 @@
+#  -z  空串	-n   非空串 ，如：if [ -z filename]
+
+# 使用("$string1")是一种很好的习惯 
+
+~+  当前工作目录,相当于$PWD 变量. 
+~-  之前的工作目录,相当于$OLDPWD 内部变量. 
+
+#判断脚本输入参数
+
+
+#expr也是个手工命令行的计数器 ：如：expr 10 + 10 注意空格 ，结果=20
+
+#使用unset清除值：
+uninitialized_variable=23       # 赋值 
+unset uninitialized_variable    # Unset it. 
+echo "uninitialized_variable = $uninitialized_variable"   # 还是空
+
+#双引号的作用：
+a=`ls -l`         # 把 ls -l 的结果给 a 
+echo $a           # 别忘了,这么引用的话,ls 的结果中的所有空白部分都没了(包括换行) 
+echo "$a"         # 这么引用就正常了,保留了空白 
+
+#类型关系：
+a=2334  
+b=${a/23/BB}             # 将 23 替换成 BB 
+# 这将把 b 变量从整型变为 string 
+echo "b = $b"            # b = BB34
+declare -i b             # 即使使用 declare 命令也不会对此有任何帮助
+echo "b = $b"            # b = BB34
+let "b += 1"             # BB34 + 1
+echo "b = $b"            # b = 1 
+
+# 使用-e 选项的 echo 命令来打印转义符
+echo -e "\t"
+或使用$'\x'结构
+echo $'\n'  
+
+#获取外网ip地址：
+wget -qO- -t1 -T2 ipv4.icanhazip.com
+
+#查找执行：
+find / -type f -perm 777 -exec chmod 655 {} \;
+
+#数组：
+Array[1]=1,2,3,4,5,6;echo ${Array[1]}
+
+#大小写转换：
+ mv  file `echo file |  tr 'a-z' 'A-Z'`
+
+#强制重定向：
+>|  (即使设置了 noclobber 选项--就是-C 选项).这将强制的覆盖一个现存文件. 
+
+# 大于 9 的参数必须出现在{}中
+if [ -n "${10}" ] 
+then
+echo "Parameter #10 is ${10}" 
+fi
+
+ # true 是 shell 内建命令,什么事都不做,就是 shell 返回 0 
+
+#双圆括号结构
+
+(( a++ ))     # 变量'a'后加 1,C 风格.
+n=1; let --n && echo "True" || echo "False"  # False 
+# 使用 let 赋值 
+let a=16+5 
+
+#pushd, popd, dirs  这几个命令可以使得工作目录书签化,就是可以按顺序向前或向后移动工作目录. 
+pushd dir-name 把路径 dir-name 压入目录栈,同时修改当前目录到 dir-name. 
+ popd 将目录栈中上边的目录弹出,同时修改当前目录到弹出来的那个目录. 
+ dirs 列出所有目录栈的内容(与$DIRSTACK 便两相比较).一个成功的 pushd 或者 popd 将会   自动的调用 dirs 命令. 
+
+eval  将表达式中的参数,或者表达式列表,组合起来,并且评估它们.包含在表达式中的任何变量  都将被扩展.结果将会被转化到命令中
+
+ for a in `seq 80`  # 或者   for a in $( seq 80 ) 或者 for i in {1..10} 
+ # 与  " for a in 1 2 3 4 5 ... 80 "相同  (少敲了好多字!). 
+
+lastlog  列出系统上所有用户后登录的时间. 存在/var/log/lastlog 文件中. 
+
+POSIX 字符类：
+[:alnum:] 匹配字母和数字.等同于 A-Za-z0-9. 
+[:alpha:] 匹配字母. 等同于 A-Za-z. 
+[:blank:] 匹配一个空格或是一个制表符(tab). 
+[:cntrl:] 匹配控制字符. 
+[:digit:] 匹配(十进制)数字. 等同于 0-9. 
+[:graph:] (可打印的图形字符). 匹配 ASCII 码值的 33 - 126 之间的字符. 这和下面提到的    [:print:] 一样,但是不包括空格字符. 
+[:lower:] 匹配小写字母. 等同于 a-z. 
+[:print:] (可打印字符). 匹配 ASCII 码值 32 - 126 之间的字符. 这和上面提到的一样    [:graph:],但是增多一个空格字符. 
+[:space:] 匹配空白字符 (空格符和水平制表符). 
+[:upper:] 匹配大写字母. 等同于 A-Z. 
+[:xdigit:] 匹配十六进制数字. 等同于 0-9A-Fa-f. 
+ ${!array[@]} 操作符, 它扩展给定的数组(array)的所有元素下标. 
+
+#!/bin/bash  
+Array=(element-zero element-one element-two element-three)    
+echo ${Array[0]}   
+echo ${!Array[@]}  # 0 1 2 3  
+for i in ${!Array[@]}    
+do    
+    echo ${Array[i]}	
+    # element-zero    # element-one  # element-two   # element-three   
+    # 在数组里的所有元素.    
+done 
+
+
+
+---------添加了-s选项之后，不会自动换行，不添加-s 会自动换行------------
+read -s -p "Please enter your password: " pass
+#隐藏方式读取数据
+
+--------定时执行----------
+at -f 4.sh 22:10
+
+---------#删除前天生成的文件-----------
+AGO=`date +%F -d  "1 day ago"`		
+rm -rf "XHW${AGO}.txt" 2>/dev/null
+
+
+

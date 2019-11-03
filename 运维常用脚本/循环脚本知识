@@ -1,0 +1,399 @@
+#whie循环：注意:while 循环的 stdin 可以用<来重定向到文件.
+#!/bin/bash
+while read rd
+do 
+    echo 'The info is $rd'
+done < /etc/passwd
+
+
+#!/bin/bash   
+while [ "$var1" != "end" ]   
+do  
+    echo "Input variable #1 (end to exit): "  
+    read var1    # 为什么不使用'read $var1'? 
+    echo "variable #1 = $var1"   # 因为包含"#"字符,所以需要"" 
+done  
+exit 0 
+
+
+#!/bin/bash  
+#C 风格的语法. 
+((a = 1))      # a=1 
+# 双圆括号允许赋值两边的空格,就像 C 语言一样. 
+while (( a <= LIMIT ))   # 双圆括号, 变量前边没有"$". 
+do 
+    echo -n "$a " 
+    ((a += 1))   # let "a+=1" 
+    # 双圆括号允许像 C 风格的语法一样增加变量的值.
+done 
+exit 0
+
+
+
+#util语句如：
+#!/bin/sh
+IS_ROOT=`who | grep root` 
+until [  “$IS_ROOT”] 
+do 
+    sleep  5 
+    IS_ROOT=`who | grep root` 
+done 
+echo “Watch it. Roots in ”| mail zhang
+
+
+#!/bin/bash 
+END_CONDITION=end 
+until [ "$var1" = "$END_CONDITION" ] 
+# 在循环的顶部判断条件. 
+do 
+    echo "Input variable #1 ($END_CONDITION to exit): "
+    read var1 
+    echo "variable #1 = $var1" 
+done  
+exit 0
+
+
+
+
+
+
+#case语句如：
+#!/bin/bash
+while  ：
+do
+    echo -n "eeee 1-5"
+    read rd
+    case $rd in
+    1|2|3|4|5)echo "$rd"
+    ;;
+    *)echo "no"
+    break
+    ;;
+    esac
+done
+
+
+#!/bin/bash  
+# 测试字符串范围 
+echo "Hit a key, then hit return." 
+read Keypress  
+case "$Keypress" in  
+    [[:lower:]] ) echo "Lowercase letter"
+    ;;
+    [[:upper:]] ) echo "Uppercase letter"
+    ;; 
+    [0-9] ) echo "Digit"
+    ;; 
+     * ) echo "Punctuation, whitespace, or other"
+     ;; 
+esac      
+#  Allows ranges of characters in [square brackets]
+
+
+
+#!/bin/bash  
+# 未经处理的地址资料  
+clear # 清屏.  
+echo " Contact List" 
+echo "------- ----" 
+echo "Choose one of the following persons:"  
+echo "[E]vans, Roland" 
+echo "[J]ones, Mildred"
+read person 
+case "$person" in	# 注意,变量是被引用的. 
+"E" | "e" )
+    echo "Roland Evans" 
+    echo "4321 Floppy Dr."
+    echo "Hardscrabble, CO 80753" 
+    echo "(303) 734-9874" 
+    echo "(303) 734-9892 fax" 
+    echo "revans@zzy.net" 
+    echo "Business partner & old friend"
+ ;; 	
+ # 注意,在每个选项后边都需要以;;结尾.
+"J" | "j" ) 
+    echo "Mildred Jones"
+    echo "249 E. 7th St., Apt. 19" 
+    echo "New York, NY 10009" 
+    echo "(212) 533-2814"
+    echo "(212) 533-9972 fax" 
+    echo "milliej@loisaida.com" 
+    echo "Ex-girlfriend"
+    echo "Birthday: Feb. 11" 
+;; 
+* )
+    # 默认选项. 
+    # 空输入(敲 RETURN).
+    echo "Not yet in database." 
+ ;; 
+esac 
+exit 0
+
+
+# 非常有用的"if-grep" 结构：
+#!/bin/bash  
+word=Linux 13 
+letter_sequence=inu 
+if echo "$word" | grep -q "$letter_sequence" # "-q"选项是用来阻止输出
+then
+    echo "$letter_sequence found in $word"  
+else 
+    echo "$letter_sequence not found in $word" 
+fi 
+
+
+#!/bin/bash
+#testing multiple commands in the then section
+testuser=tiandi
+if grep $testuser /etc/passwd
+then
+	echo The bash files from user $testuser are:
+	ls -a /home/$testuser/.b*
+fi
+
+
+使用一个方括号
+#!/bin/bash
+# using pattern matching
+
+if [ $USER == r* ]
+then
+        echo "Hello $USER"
+else
+        echo "Sorry, I do not know you"
+fi
+#结果Sorry, I do not know you
+
+
+使用两个方括号
+#!/bin/bash
+# using pattern matching
+
+if [[ $USER == r* ]]
+then
+        echo "Hello $USER"
+else
+        echo "Sorry, I do not know you"
+fi
+#结果Hello root
+
+C语言风格
+#!/bin/bash
+#testing the C-style for loop
+
+for (( i=1; i<=10; i++ ))
+do
+	echo "The next number is $i"
+done
+
+
+
+
+
+
+#for循环list例子：
+#!/bin/bash  
+# fileinfo.sh 
+FILES="
+/usr/sbin/accept  
+/usr/sbin/pwck 
+/usr/sbin/chroot 
+/usr/bin/fakefile 
+/sbin/badblocks  
+/sbin/ypbind"     
+# 扔进去一个假文件, /usr/bin/fakefile. 
+for file in $FILES 
+do 
+    if [ ! -e "$file" ]       # 检查文件是否存在. 
+    then 
+    echo "$file does not exist."
+    continue                # 继续下一个.  
+    fi 
+    ls -l $file | awk '{ print $9 "file size: " $5 }'  # 打印 2 个域.
+    whatis `basename $file`   # 文件信息. 
+    # 注意 whatis 数据库需要提前建立好. 
+    # 要想达到这个目的, 以 root 身份运行/usr/bin/makewhatis.
+done   
+exit 0 ################################End 
+
+
+#!/bin/bash  
+for file in [jx]*  
+do 
+    rm -f $file    # 只删除当前目录下以"j"或"x"开头的文件.
+    echo "Removed file \"$file\"". 
+done 
+exit 0 
+
+
+#!/bin/bash 
+PASSWORD_FILE=/etc/passwd
+n=1        
+for name in $(awk 'BEGIN{FS=":"}{print $1}' < "$PASSWORD_FILE" )  
+# 域分隔   = :      
+# 打印出第一个域              
+# 从 password 文件中取得输入                   
+do 
+    echo "USER #$n = $name" 
+    let "n += 1" 
+done  
+# USER #1 = root 
+# USER #2 = bin 
+# USER #3 = daemon 
+# ... .....
+# USER #30 = bozo
+exit 0 
+
+
+#!/bin/bash  
+# findstring.sh:  
+# 在一个指定目录的所有文件中查找一个特定的字符串.
+directory=/usr/bin/  
+fstring="Free Software Foundation"  # 查看那个文件中包含 FSF. 
+for file in $( find $directory -type f -name '*' | sort )  
+do 
+strings -f $file | grep "$fstring" | sed -e "s%$directory%%"
+#  在"sed"表达式中, 我们必须替换掉正常的替换分隔符"/",
+#+ 因为"/"碰巧是我们需要过滤的字串之一. 
+#  如果不用"%"代替"/"作为分隔符,那么这个操作将失败,并给出一个错误消息
+done   
+exit 0
+
+
+#!/bin/bash  
+# 现在, 让我们用 C 风格的语法 
+LIMIT=10 
+for ((a=1; a <= LIMIT ; a++))  # 双圆括号, 并且"LIMIT"变量前边没有 "$".
+do
+echo -n "$a "
+done                          
+ # 这是一个借用'ksh93'的结构.
+
+    
+#!/bin/bash
+#iterate through all the files in a directory
+for file in /home/tiandi/test/*
+do
+	if [ -d "$file" ]
+	then
+		echo "$file is a directory"
+	elif [ -f "$file" ]
+	then
+		echo "$file is a file"
+	fi
+done
+
+
+#!/bin/bash
+
+# redirecting the for output to a file
+for file in /home/tiandi/*
+do
+	if [ -d "$file" ]
+	then
+		echo "$file is a directory"
+	else
+		echo "$file is a file"
+	fi
+done > output.txt
+
+
+
+
+#contiue语句：
+#!/bin/bash  
+LIMIT=19  # 上限 
+echo "Printing Numbers 1 through 20 (but not 3 and 11)."  
+a=0  
+while [ $a -le "$LIMIT" ] 
+do 
+    a=$(($a+1))
+    if [ "$a" -eq 3 ] || [ "$a" -eq 11 ]  # 除了 3 和 11. 
+    then 
+        continue      # 跳过本次循环剩下的语句. 
+    fi 
+echo -n "$a"   # 在$a 等于 3 和 11 的时候,这句将不会执行. 
+done  
+#想想为什么会echo出20?
+
+
+
+
+#!/bin/bash  
+# "continue N" 命令, 将让 N 层的循环全部被 continue.
+for outer in I II III IV V           # 外部循环  
+do 
+    echo -n "Group $outer: " 
+    for inner in 1 2 3 4 5 6 7 8 9 10  # 内部循环 
+    do 
+        if [ "$inner" -eq 7 ]
+         then 
+            continue 2 
+            # continue 2 层, 也就是到 outer 循环上.  
+        fi  
+        echo -n "$inner"  # 7 8 9 10 将不会被 echo 
+    done   
+done 
+
+
+
+
+#break语句：
+break，contiue 命令可以带一个参数.一个不带参数的 break循环只能退出内层的循环,而 break N  可以退出 N 层循环. 这两个命令是 shell 的内建命令
+#!/bin/bash
+# "break N" 退出 N 层循环. 
+for outerloop in 1 2 3 4 5  
+do  
+    echo -n "Group $outerloop:   "  
+    for innerloop in 1 2 3 4 5 
+    do 
+        echo -n "$innerloop " 
+        if [ "$innerloop" -eq 3 ] 
+        then 
+            break  # 试试 break 2 (内部循环和外部循环都被退出了.) 
+        fi 
+    done
+done   
+exit 0
+
+
+
+
+select语句
+#!/bin/bash
+# using select in the menu
+function diskspace {
+	clear 
+	df -k
+}
+function whoseon {
+	clear
+	who
+}
+function menusage {
+	clear
+	cat /proc/meminfo
+}
+PS3="Enter option:"
+select option in "Display disk space" "Display logged on users" "Display memory usage" "Exit program"
+do
+	case $option in
+	"Exit program")
+		break;;
+	"Display disk space")
+		diskspace;;
+	"Display logged on users")
+		whoseon;;
+	"Display memory usage")
+		menusage;;
+	*)
+		clear
+		echo "Sorry, wrong selection";;
+	esac
+done
+clear
+
+
+
+
+

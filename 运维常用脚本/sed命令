@@ -1,0 +1,29 @@
+#删除开头的空白行
+sed '/./,$!d' 
+
+
+#删除结尾的空白行
+sed '{:start/^\n*$/{$d; N; b start}}' 
+
+ 
+隔4段输出换行：
+sed 'N;N;N;s/\n//g' 
+
+#and符号，代表替换命令中的匹配模式，不管预定义模式是什么文本，都可以用and符号替换，and符号会提取匹配替换命令中指定替换模式中的所有字符串
+echo "The cat sleeps in his hat" | sed 's/.at/#&#/g'
+#结果：The #cat# sleeps in his #hat#
+
+#替换单独的单词
+echo "The System Administrator manual" | sed 's/Administrator/user/'
+
+
+#在长数字中插入逗号
+echo "1234567" | sed '{:start; s/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/; t start}'
+
+#打印第二行
+sed -n '2p'
+
+#查看内存使用百分比
+free | sed -n '2p' | gawk 'x = int(( $3 / $2 ) * 100) {print x}' | sed 's/$/%/'
+
+

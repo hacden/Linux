@@ -1,0 +1,2 @@
+--------按时间进行tar-------
+tar cvf 201901-06.rar.gz `find ./Data -newermt '2019-8-27 00:00' ! -newermt '2019-8-27 23:59' -type f`

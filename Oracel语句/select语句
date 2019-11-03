@@ -1,0 +1,27 @@
+-- 查询所有用户的表,视图等。
+select * from all_tab_comments 
+
+ -- 查询本用户的表,视图等。
+select * from user_tab_comments
+SELECT * FROM USER_TAB_COMMENTS WHERE TABLE_TYPE = 'TABLE'
+
+--查询所有用户的表的列名和注释。
+select * from all_col_comments  
+select * from all_tab_comments where TABLE_TYPE='TABLE'
+
+-- 查询本用户的表的列名和注释。
+select * from user_col_comments 
+
+--查询所有用户的表的列名等信息。
+select * from all_tab_columns 
+
+--查询本用户的表的列名等信息。
+select * from user_tab_columns 
+
+--查询所有（架构）用户信息
+select * from dba_users
+
+--查询某用户下所有表 //查询某个用户下的所有表，注意此处用户名要大写
+select * from all_tab_comments where owner='用户名'       
+
+

@@ -1,0 +1,2 @@
+-------------压缩打包剔除日志的命令-------------------
+find /home/  -path /home/DOWNLOAD -prune -o -type f -not -name '*.log*' -not -name '*.tar.gz'  -not -name '*.tar' -not -size +50000000c -exec tar zcvf /home/dzyw/1.tar.gz {} \;
